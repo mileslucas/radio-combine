@@ -5,3 +5,4 @@ clean:
 	rm -rf data/*regrid*
 	rm -rf scripts/*.pyc
 	rm -rf tests/*.pyc
+	rm -rf *.last

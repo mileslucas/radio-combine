@@ -3,7 +3,6 @@
 
 import numpy as np
 import argparse
-import re
 
 # CASA imports
 from casac import casac
@@ -13,6 +12,23 @@ tb = casac.table()
 def compare(image_a, image_b, regrid=False, plot=True):
 	'''
 	Compare the given images
+
+	Params
+	------
+	image_a: str
+		The path to the first image
+	image_b: str
+		The path to the second image
+	regrid: bool (optional)
+		If true, regrids the second image to the first image's coordinate system. Default=False
+	plot: bool (optional)
+		If true, creates plots of the power spectra. Default=True
+
+	Returns
+	-------
+	psds: ndarray
+		This is a 2x2 array with the two power spectrum densities for each image. The format is
+		[psd_a, psd_b] where each psd consists of [freq, pow]. 
 	'''
 	if regrid:
 		image_b = regrid_im(image_a, image_b)
@@ -31,7 +47,7 @@ def compare(image_a, image_b, regrid=False, plot=True):
 	print 'Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_a, np.real(pow_a[idx][0]), np.sum(amps_a) == pow_a[idx])
 	idx = r_b == 0
 	print 'Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_b, np.real(pow_b[idx][0]), np.sum(amps_b) == pow_b[idx])
-	return r_a, pow_a, r_b, pow_b
+	return [[r_a, pow_a], [r_b, pow_b]]
 
 	
 
@@ -39,11 +55,17 @@ def regrid_im(image_a, image_b):
 	'''
 	Regrids image_b from image_a
 
+	Params
+	------
+	image_a: str
+		The path to the first (reference) image
+	image_b: str
+		The path to the second image)
 
 	Returns
 	-------
 	outname: str
-		The path of the regridded image. This should be the same is <image_b>.regrid
+		The path of the regridded image. This should be the same as <image_b>.regrid
 	'''
 
 	ia.open(image_a)
@@ -71,7 +93,8 @@ def get_arrays(image_path):
 	
 	Returns
 	-------
-	
+	smap: dict
+		A dictionary with the relevant skymap axis information. 
 	pow: ndarray
 		A 2 dimensional array of the powers of the fft
 	'''
@@ -98,7 +121,22 @@ def get_arrays(image_path):
 
 def get_psd(smap, amps):
 	'''
-	Turn the 2D data into 1D data by taking the distance from the origin
+	Creates a power spectrum density (PSD) from given skymap axis information and 2D amplitudes
+
+	Params
+	-------
+	smap: dict
+		The relevant skymap axis information. There should be four keys: 'n_x' and 'n_y' are
+		the length of each axis and 'd_x' and 'd_y' are the increments in degrees of each axis
+	amps: ndarray
+		The 2-dimensional amplitude map of the image
+
+	Returns
+	-------
+	dist: ndarray
+		The square distance of each fourier point from the origin
+	power: ndarray
+		The unnormalized power of the  fourier transform
 	'''
 	# Get the frequencies
 	freq_x = np.fft.fftfreq(smap['n_x'], smap['d_x'])
@@ -117,7 +155,23 @@ def get_psd(smap, amps):
 
 def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	'''
-	Plots comparison of the two power spectrum
+	Plots comparison of the two power spectrum. This method will throw an exception if 
+	there is no display. 
+	
+	Params
+	------
+	r_a: array-like
+		The distances of the psd for the first image
+	pow_a: array-like
+		The powers of the psd for the first image
+	name_a: str
+		The name of the first image or dataset
+	r_b: array-like
+		The distances of the psd for the second image
+	pow_b: array-like
+		The powers of the psd for the second image
+	name_b: str
+		The name of the second image or dataset
 	'''
 	import matplotlib.pyplot as plt
 	import matplotlib as mpl
