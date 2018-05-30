@@ -115,17 +115,37 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	# Style
 	#mpl.style.use('seaborn')
 	style = {
-		'figure.figsize': (12, 8),
+		'figure.figsize': (9, 6),
 		'axes.labelsize': 14,
 		'axes.titlesize': 16,
 		'legend.fontsize': 14,
 	}
 	mpl.rcParams.update(style)
 
-	# Plot
+	line_props = {
+		'ls': '',
+		'marker': '.',
+		'ms': 4,
+		'mew': 0,
+		'alpha': 0.4,
+		'lw': 1,
+	}
+	# Singular Plots
+	plt.figure(figsize=(9, 9))
+	ax1 = plt.subplot(211)
+	plt.semilogy(r_a, pow_a, c='b', **line_props)
+	plt.title(name_a)
+
+	ax2 = plt.subplot(212, sharex=ax1, sharey=ax1)
+	plt.semilogy(r_b, pow_b, c='g', **line_props)
+	plt.title(name_b)
+	plt.tight_layout()
+	plt.show()
+
+	# Plot Both
 	plt.figure()
-	plt.semilogy(r_a, pow_a, '.', alpha=.7, lw=1, label=name_a)
-	plt.semilogy(r_b, pow_b, '.', alpha=.7, lw=1, label=name_b)
+	plt.semilogy(r_a, pow_a, label=name_a, **line_props)
+	plt.semilogy(r_b, pow_b, label=name_b, **line_props)
 	plt.title('Comparison of PSD')
 	plt.xlabel(r'f')
 	plt.ylabel(r'Power (unnormalized)')
