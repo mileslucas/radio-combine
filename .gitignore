@@ -376,3 +376,4 @@ tags
 # End of https://www.gitignore.io/api/vim,c++,latex,python
 
 *.last
+.nfs*
