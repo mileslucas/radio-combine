@@ -3,9 +3,6 @@ from scripts import compare
 import numpy as np
 
 class TestCompare(unittest.Testcase):
-
-	def test_test(self):
-		self.assertTrue(True)
 	
 	def test_get_arr(self):
 		data_path = 'data/orion.gbt.im'
