@@ -2,8 +2,8 @@
 # Miles Lucas - mdlucas@nrao.edu
 
 import numpy as np
-from matplotlib import rc
-import matplotlib.pyplot as plt
+# from matplotlib import rc
+# import matplotlib.pyplot as plt
 import argparse
 
 def compare(image_a, image_b):

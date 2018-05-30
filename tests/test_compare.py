@@ -2,7 +2,7 @@ import unittest
 from scripts import compare
 import numpy as np
 
-class TestCompare(unittest.Testcase):
+class TestCompare(unittest.TestCase):
 	
 	def test_get_arr(self):
 		data_path = 'data/orion.gbt.im'
