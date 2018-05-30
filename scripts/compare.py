@@ -10,8 +10,10 @@ def compare(image_a, image_b, regrid=False):
 	'''
 	Compare the given images
 	'''
-	waves_a, amps_a = get_arrays(image_a)
-	waves_b, amps_b = get_arrays(image_b)
+	if regrid:
+		image_b = regrid(image_a, image_b)
+	smap_a, amps_a = get_arrays(image_a)
+	smap_b, amps_b = get_arrays(image_b)
 
 	
 
@@ -25,7 +27,7 @@ def regrid(image_a, image_b):
 	outname: str
 		The path of the regridded image. This should be the same is <image_b>.regrid
 	'''
-	
+
 	ia.open(image_a)
 	cs = ia.coordsys()
 	ia.open(image_b)
@@ -48,30 +50,32 @@ def get_arrays(image_path):
 	
 	Returns
 	-------
-	waves: ndarray
-		A 2 dimensional array of the wavelengths of the fft
-	amps: ndarray
-		A 2 dimensional array of the amplitudes of the fft
+	
+	pow: ndarray
+		A 2 dimensional array of the powers of the fft
 	'''
-	ia.open(image_path)
-	ia.fft(real='r.im', amps='a.im')
-	ia.close()
 
-	tb.open('r.im')
-	waves = np.squeeze(tb.getcol('map'))
-	tb.close()
-
-	tb.open('a.im')
+	# Get the Powers
+	tb.open(image_path)
 	amps = np.squeeze(tb.getcol('map'))
 	tb.close()
 
-	ia.removefile('r.im')
-	ia.removefile('a.im')
+	# Get the sky map axes
+	ia.open(image_path)
+	summ = ia.summary()
+	ia.close()
 
-	return waves, amps
+	smap = {
+		'n_x': summ['shape'][0],
+		'd_x': summ['incr'][0],
+		'n_y': summ['shape'][1],
+		'd_y': summ['incr'][1],
+	}
+
+	return smap, amps
 
 
-def arr_transform(freq_x, freq_y, amps):
+def arr_transform(smap, amps):
 	'''
 	Turn the 2D data into 1D data by taking the distance from the origin
 	'''
