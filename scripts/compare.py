@@ -4,6 +4,11 @@
 import numpy as np
 import argparse
 
+# CASA imports
+from casac import casac
+ia = casac.image()
+tb = casac.table()
+
 def compare(image_a, image_b, regrid=False, plot=True):
 	'''
 	Compare the given images
@@ -17,8 +22,8 @@ def compare(image_a, image_b, regrid=False, plot=True):
 	r_b, pow_b = get_psd(smap_b, amps_b)
 
 	if plot:
-		camparison_plot(r_a, pow_a, r_b, pow_b)
-
+		comparison_plot(r_a, pow_a, r_b, pow_b)
+	
 	return r_a, pow_a, r_b, pow_b
 
 	
@@ -105,29 +110,29 @@ def comparison_plot(r_a, pow_a, r_b, pow_b):
 	Plots comparison of the two power spectrum
 	'''
 	import matplotlib.pyplot as plt
-	from matplotlib import rcParams
+	import matplotlib as mpl
 
 	# Style
-	plt.style.use('seaborn')
+	#mpl.style.use('seaborn')
 	style = {
 		'figure.figsize': (12, 8),
 		'axes.labelsize': 14,
 		'axes.titlesize': 16,
 		'legend.fontsize': 14,
 	}
-	rcParams.update(style)
+	mpl.rcParams.update(style)
 
 	# Plot
 	plt.figure()
-	plt.semilogy(r_a, pow_a, label='Image A')
-	plt.semilogy(r_b, pow_b, label='Image B')
+	plt.semilogy(r_a, pow_a, lw=1,  label='Image A')
+	plt.semilogy(r_b, pow_b, lw=1, label='Image B')
 	plt.title('Comparison of PSD')
 	plt.xlabel(r'f')
 	plt.ylabel(r'Power (unnormalized)')
 	plt.legend(loc='best')
 	plt.show()
 
-
+	
 
 
 if __name__ == '__main__':
