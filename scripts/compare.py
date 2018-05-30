@@ -3,6 +3,7 @@
 
 import numpy as np
 import argparse
+import re
 
 # CASA imports
 from casac import casac
@@ -24,6 +25,12 @@ def compare(image_a, image_b, regrid=False, plot=True):
 	if plot:
 		comparison_plot(r_a, pow_a, image_a.split('/')[-1], r_b, pow_b, image_b.split('/')[-1])
 	
+
+	# Verify Fourier transform property
+	idx = r_a == 0
+	print 'Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_a, np.real(pow_a[idx][0]), np.sum(amps_a) == pow_a[idx])
+	idx = r_b == 0
+	print 'Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_b, np.real(pow_b[idx][0]), np.sum(amps_b) == pow_b[idx])
 	return r_a, pow_a, r_b, pow_b
 
 	
@@ -41,10 +48,13 @@ def regrid_im(image_a, image_b):
 
 	ia.open(image_a)
 	cs = ia.coordsys()
+	ia.close()
 	ia.open(image_b)
-	outname = image_b + '.regrid'
+	tokens = image_b.split('.')
+	outname = '.'.join(tokens[:-1]) + '.regrid.' + tokens[-1]
 	ia.regrid(outfile=outname, csys=cs.torecord(), shape=ia.shape(), overwrite=True)
 	cs.done()
+	ia.done()
 	ia.close()
 
 	return outname
@@ -139,6 +149,8 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	ax2 = plt.subplot(212, sharex=ax1, sharey=ax1)
 	plt.semilogy(r_b, pow_b, c='g', **line_props)
 	plt.title(name_b)
+	plt.xlabel(r'$f$ (Hz)')
+	
 	plt.tight_layout()
 	plt.show()
 
@@ -147,7 +159,7 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	plt.semilogy(r_a, pow_a, label=name_a, **line_props)
 	plt.semilogy(r_b, pow_b, label=name_b, **line_props)
 	plt.title('Comparison of PSD')
-	plt.xlabel(r'f')
+	plt.xlabel(r'$f$ (Hz)')
 	plt.ylabel(r'Power (unnormalized)')
 	plt.legend(loc='best')
 	plt.show()
