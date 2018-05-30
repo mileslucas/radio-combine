@@ -62,7 +62,7 @@ def arr_transform(freq_x, freq_y, amps):
 			dist.append(np.linalg.norm((x, y)))
 			power.append(amps[i, j])
 
-	return dist, power
+	return np.array(dist), np.array(power)
 
 
 if __name__ == '__main__':
