@@ -22,7 +22,7 @@ def compare(image_a, image_b, regrid=False, plot=True):
 	r_b, pow_b = get_psd(smap_b, amps_b)
 
 	if plot:
-		comparison_plot(r_a, pow_a, r_b, pow_b)
+		comparison_plot(r_a, pow_a, image_a.split('/')[-1], r_b, pow_b, image_b.split('/')[-1])
 	
 	return r_a, pow_a, r_b, pow_b
 
@@ -105,7 +105,7 @@ def get_psd(smap, amps):
 
 	return np.array(dist), np.array(power)
 
-def comparison_plot(r_a, pow_a, r_b, pow_b):
+def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	'''
 	Plots comparison of the two power spectrum
 	'''
@@ -124,8 +124,8 @@ def comparison_plot(r_a, pow_a, r_b, pow_b):
 
 	# Plot
 	plt.figure()
-	plt.semilogy(r_a, pow_a, lw=1,  label='Image A')
-	plt.semilogy(r_b, pow_b, lw=1, label='Image B')
+	plt.semilogy(r_a, pow_a, '.', alpha=.7, lw=1, label=name_a)
+	plt.semilogy(r_b, pow_b, '.', alpha=.7, lw=1, label=name_b)
 	plt.title('Comparison of PSD')
 	plt.xlabel(r'f')
 	plt.ylabel(r'Power (unnormalized)')
