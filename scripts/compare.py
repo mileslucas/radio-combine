@@ -6,7 +6,7 @@ import numpy as np
 # import matplotlib.pyplot as plt
 import argparse
 
-def compare(image_a, image_b):
+def compare(image_a, image_b, regrid=False):
 	'''
 	Compare the given images
 	'''
@@ -15,7 +15,27 @@ def compare(image_a, image_b):
 
 	
 
+def regrid(image_a, image_b):
+	'''
+	Regrids image_b from image_a
+
+
+	Returns
+	-------
+	outname: str
+		The path of the regridded image. This should be the same is <image_b>.regrid
+	'''
 	
+	ia.open(image_a)
+	cs = ia.coordsys()
+	ia.open(image_b)
+	outname = image_b + '.regrid'
+	ia.regrid(outfile=outname, csys=cs.torecord(), shape=ia.shape(), overwrite=True)
+	cs.done()
+	ia.close()
+
+	return outname
+
 
 def get_arrays(image_path):
 	'''
@@ -69,5 +89,6 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('image_a', help='path to the first image')
 	parser.add_argument('image_b', help='path to the second image')
+	parser.add_argument('-r', '--regrid', action='store_true', help="regrids image_b to image_a's coordinates")
 	args = parser.parse_args()
-	compare(args.image_a, args.image_b)
+	compare(args.image_a, args.image_b, args.regrid)
