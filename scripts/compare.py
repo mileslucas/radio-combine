@@ -195,6 +195,12 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 		'alpha': 0.4,
 		'lw': 1,
 	}
+	# Get bin the data
+	bin_width = 100
+	x = np.arange(0, max((max(r_a), max(r_b))), bin_width)
+	int_y_a = np.interp(x, r_a, np.real(pow_a))
+	int_y_b = np.interp(x, r_b, np.real(pow_b))
+
 	# Singular Plots
 	plt.figure(figsize=(9, 9))
 	ax1 = plt.subplot(211)
@@ -211,12 +217,10 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 
 	# Plot Both
 	plt.figure()
-	plt.semilogy(r_a, pow_a, label=name_a, **line_props)
-	plt.semilogy(r_b, pow_b, label=name_b, **line_props)
+	plt.plot(x, int_y_a/int_y_b, **line_props)
 	plt.title('Comparison of PSD')
 	plt.xlabel(r'UV Distance ($\lambda$)')
-	plt.ylabel(r'Power (unnormalized)')
-	plt.legend(loc='best')
+	plt.ylabel(r'Power Ratio')
 	plt.show()
 
 	
