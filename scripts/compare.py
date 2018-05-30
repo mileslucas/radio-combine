@@ -8,6 +8,7 @@ import argparse
 from casac import casac
 ia = casac.image()
 tb = casac.table()
+log = casac.logsink()
 
 def compare(image_a, image_b, regrid=False, plot=True):
 	'''
@@ -44,9 +45,9 @@ def compare(image_a, image_b, regrid=False, plot=True):
 
 	# Verify Fourier transform property
 	idx = r_a == 0
-	print 'Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_a, np.real(pow_a[idx][0]), np.sum(amps_a) == pow_a[idx])
+	log.post('Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_a, np.real(pow_a[idx][0]), np.sum(amps_a) == pow_a[idx]))
 	idx = r_b == 0
-	print 'Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_b, np.real(pow_b[idx][0]), np.sum(amps_b) == pow_b[idx])
+	log.post('Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_b, np.real(pow_b[idx][0]), np.sum(amps_b) == pow_b[idx]))
 	return [[r_a, pow_a], [r_b, pow_b]]
 
 	
@@ -74,7 +75,8 @@ def regrid_im(image_a, image_b):
 	ia.open(image_b)
 	tokens = image_b.split('.')
 	outname = '.'.join(tokens[:-1]) + '.regrid.' + tokens[-1]
-	ia.regrid(outfile=outname, csys=cs.torecord(), shape=ia.shape(), overwrite=True)
+	ib = ia.regrid(outfile=outname, csys=cs.torecord(), shape=ia.shape(), overwrite=True)
+	ib.done()
 	cs.done()
 	ia.done()
 	ia.close()
@@ -133,25 +135,24 @@ def get_psd(smap, amps):
 
 	Returns
 	-------
-	dist: ndarray
+	uvdist: ndarray
 		The square distance of each fourier point from the origin
 	power: ndarray
 		The unnormalized power of the  fourier transform
 	'''
 	# Get the frequencies
-	freq_x = np.fft.fftfreq(smap['n_x'], smap['d_x'])
-	freq_y = np.fft.fftfreq(smap['n_y'], smap['d_y'])
-
+	us = np.fft.fftfreq(smap['n_x'], smap['d_x'])
+	vs = np.fft.fftfreq(smap['n_y'], smap['d_y'])
 	fft = np.fft.fft2(amps)
-
-	dist = []
+	uvdist = []
 	power = []
-	for i, x in enumerate(freq_x):
-		for j, y in enumerate(freq_y):
-			dist.append(np.linalg.norm((x, y)))
+	for i, u in enumerate(us):
+		for j, v in enumerate(vs):
+			uvdist.append(np.linalg.norm((u, v)))
 			power.append(fft[i, j])
+	
 
-	return np.array(dist), np.array(power)
+	return np.array(uvdist), np.array(power)
 
 def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	'''
@@ -213,7 +214,7 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	plt.semilogy(r_a, pow_a, label=name_a, **line_props)
 	plt.semilogy(r_b, pow_b, label=name_b, **line_props)
 	plt.title('Comparison of PSD')
-	plt.xlabel(r'$f$ (Hz)')
+	plt.xlabel(r'UV Distance ($\lambda$)')
 	plt.ylabel(r'Power (unnormalized)')
 	plt.legend(loc='best')
 	plt.show()
