@@ -9,7 +9,7 @@ def compare(image_a, image_b, regrid=False, plot=True):
 	Compare the given images
 	'''
 	if regrid:
-		image_b = regrid(image_a, image_b)
+		image_b = regrid_im(image_a, image_b)
 	smap_a, amps_a = get_arrays(image_a)
 	smap_b, amps_b = get_arrays(image_b)
 
@@ -23,7 +23,7 @@ def compare(image_a, image_b, regrid=False, plot=True):
 
 	
 
-def regrid(image_a, image_b):
+def regrid_im(image_a, image_b):
 	'''
 	Regrids image_b from image_a
 
