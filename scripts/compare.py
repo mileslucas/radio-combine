@@ -51,16 +51,18 @@ def get_arrays(image_path):
 	return waves, amps
 
 
-def norm_transform(waves, amps):
+def arr_transform(freq_x, freq_y, amps):
 	'''
 	Turn the 2D data into 1D data by taking the distance from the origin
 	'''
 	dist = []
 	power = []
-	for i, row in enumerate(waves):
-		for j, col in enumerate(row):
-			r = np.linalg.norm()
-			
+	for i, x in enumerate(freq_x):
+		for j, y in enumerate(freq_y):
+			dist.append(np.linalg.norm((x, y)))
+			power.append(amps[i, j])
+
+	return dist, power
 
 
 if __name__ == '__main__':
