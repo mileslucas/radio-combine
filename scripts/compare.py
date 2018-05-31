@@ -200,11 +200,13 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	# Get bin the data
 	bin_width = 100
 	x = np.arange(0, min((max(r_a), max(r_b))), bin_width)
+	print max(x)
 	int_y_a = np.interp(x, r_a, np.real(pow_a))
 	int_y_b = np.interp(x, r_b, np.real(pow_b))
 
 	# Singular Plots
-	plt.figure(figsize=(9, 9))
+	fig = plt.figure(figsize=(9, 9))
+	plt.suptitle('PSD', fontsize=18)
 	ax1 = plt.subplot(211)
 	plt.semilogy(r_a, pow_a, c='b', **line_props)
 	plt.title(name_a)
@@ -212,18 +214,32 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	ax2 = plt.subplot(212, sharex=ax1, sharey=ax1)
 	plt.semilogy(r_b, pow_b, c='g', **line_props)
 	plt.title(name_b)
-	plt.xlabel(r'$f$ (Hz)')
+	plt.xlabel(r'UV Distance ($\lambda$)')
+	fig.text(0.04, 0.5, 'Power', fontsize=16, va='center', rotation = 'vertical')
+	plt.show()
+
+	# Interpolated
+	fig = plt.figure(figsize=(9, 9))
+	plt.suptitle('Interpolated PSD', fontsize=18)
+	ax1 = plt.subplot(211)
+	plt.semilogy(x, int_y_a, 'b.', mew=0)
+	plt.title(name_a)
+
+	ax2 = plt.subplot(212, sharex=ax1, sharey=ax1)
+	plt.semilogy(x, int_y_b, 'g.', mew=0)
+	plt.title(name_b)
+	plt.xlabel(r'UV Distance ($\lambda$)')
+	fig.text(0.04, 0.5, 'Power', fontsize=16, va='center', rotation = 'vertical')
 	
-	plt.tight_layout()
 	plt.show()
 
 	# Plot Both
 	plt.figure()
-	plt.plot(x, np.abs(int_y_b - int_y_a) * 100/int_y_a, 'o')
+	plt.plot(x, int_y_b / int_y_a, 'o')
 	plt.title('Comparison of PSD')
 	plt.xlabel(r'UV Distance ($\lambda$)')
 	plt.ylabel(r'Percent Difference in power')
-	plt.ylim(-1, 101)
+	plt.ylim(-1, None)
 	plt.show()
 
 	
