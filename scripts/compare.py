@@ -40,7 +40,7 @@ def compare(image_a, image_b, regrid=False, plot=True):
 	r_b, pow_b = get_psd(smap_b, amps_b)
 
 	if plot:
-		comparison_plot(r_a, pow_a, image_a.split('/')[-1], r_b, pow_b, image_b.split('/')[-1])
+		comparison_plot(r_a, pow_a, image_a, r_b, pow_b, image_b)
 	
 
 	# Verify Fourier transform property
@@ -200,47 +200,45 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	# Get bin the data
 	bin_width = 100
 	x = np.arange(0, min((max(r_a), max(r_b))), bin_width)
-	print max(x)
 	int_y_a = np.interp(x, r_a, np.real(pow_a))
 	int_y_b = np.interp(x, r_b, np.real(pow_b))
 
-	# Singular Plots
-	fig = plt.figure(figsize=(9, 9))
-	plt.suptitle('PSD', fontsize=18)
-	ax1 = plt.subplot(211)
-	plt.semilogy(r_a, pow_a, c='b', **line_props)
-	plt.title(name_a)
+	# Plots
+	grid = plt.GridSpec(2, 3, width_ratios=[1, 1, 2])
+	fig = plt.figure(figsize=(18,9))
+	ax1 = plt.subplot(grid[0,0])
+	plt.semilogy(r_a/1000, pow_a, c='b', **line_props)
+	plt.ylabel(name_a)
+	plt.title('PSD')
+	plt.gca().get_xaxis().set_visible(False)
 
-	ax2 = plt.subplot(212, sharex=ax1, sharey=ax1)
-	plt.semilogy(r_b, pow_b, c='g', **line_props)
-	plt.title(name_b)
-	plt.xlabel(r'UV Distance ($\lambda$)')
-	fig.text(0.04, 0.5, 'Power', fontsize=16, va='center', rotation = 'vertical')
-	plt.show()
+	plt.subplot(grid[1,0], sharex=ax1, sharey=ax1)
+	plt.semilogy(r_b/1000, pow_b, c='g', **line_props)
+	plt.ylabel(name_b)
 
-	# Interpolated
-	fig = plt.figure(figsize=(9, 9))
-	plt.suptitle('Interpolated PSD', fontsize=18)
-	ax1 = plt.subplot(211)
-	plt.semilogy(x, int_y_a, 'b.', mew=0)
-	plt.title(name_a)
+	plt.subplot(grid[0,1], sharex=ax1, sharey=ax1)
+	plt.semilogy(x/1000, int_y_a, 'b.', mew=0)
+	plt.title('Interpolated PSD')
+	plt.gca().get_xaxis().set_visible(False)
+	plt.gca().get_yaxis().set_visible(False)
+	
+	plt.subplot(grid[1,1], sharex=ax1, sharey=ax1)
+	plt.semilogy(x/1000, int_y_b, 'g.', mew=0)
+	plt.gca().get_yaxis().set_visible(False)
 
-	ax2 = plt.subplot(212, sharex=ax1, sharey=ax1)
-	plt.semilogy(x, int_y_b, 'g.', mew=0)
-	plt.title(name_b)
-	plt.xlabel(r'UV Distance ($\lambda$)')
-	fig.text(0.04, 0.5, 'Power', fontsize=16, va='center', rotation = 'vertical')
+	ax5 = plt.subplot(grid[:, 2], sharex=ax1)
+	plt.plot(x/1000, int_y_b / int_y_a, 'o')
+	plt.title('Comparison of PSD')
+	ax5.yaxis.tick_right()
+
+
+	
+	fig.text(0.04, 0.5, 'Power', fontsize=14, va='center', rotation = 'vertical')
+	fig.text(0.5, 0.04, r'UV Distance ($k\lambda$)', ha='center', fontsize=14)
+	fig.text(0.96, 0.5, r'Power ratio', va='center', fontsize=14, rotation='vertical')
 	
 	plt.show()
 
-	# Plot Both
-	plt.figure()
-	plt.plot(x, int_y_b / int_y_a, 'o')
-	plt.title('Comparison of PSD')
-	plt.xlabel(r'UV Distance ($\lambda$)')
-	plt.ylabel(r'Percent Difference in power')
-	plt.ylim(-1, None)
-	plt.show()
 
 	
 
