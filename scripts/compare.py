@@ -197,6 +197,16 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 		'alpha': 0.4,
 		'lw': 1,
 	}
+	# Mask the Data
+	thresh = 1e3
+	mask_a = pow_a >  thresh
+	r_a = r_a[mask_a]
+	pow_a = pow_a[mask_a]
+
+	mask_b = pow_b > thresh
+	r_b  = r_b[mask_b]
+	pow_b = pow_b[mask_b]
+
 	# Get bin the data
 	bin_width = 100
 	x = np.arange(0, min((max(r_a), max(r_b))), bin_width)
@@ -227,7 +237,7 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	plt.gca().get_yaxis().set_visible(False)
 
 	ax5 = plt.subplot(grid[:, 2], sharex=ax1)
-	plt.plot(x/1000, int_y_b / int_y_a, 'o')
+	plt.errorbar(x/1000, int_y_b / int_y_a, yerr=1/np.mean((int_y_a, int_y_b), axis=0), fmt='o')
 	plt.title('Comparison of PSD')
 	ax5.yaxis.tick_right()
 
