@@ -198,20 +198,24 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 		'lw': 1,
 	}
 	# Mask the Data
-	thresh = 1e3
-	mask_a = pow_a >  thresh
+	thresh_a = 1e3
+	mask_a = pow_a >  thresh_a
 	r_a = r_a[mask_a]
 	pow_a = pow_a[mask_a]
 
-	mask_b = pow_b > thresh
+	thresh_b = 1e2
+	mask_b = pow_b > thresh_b
 	r_b  = r_b[mask_b]
 	pow_b = pow_b[mask_b]
 
 	# Get bin the data
 	bin_width = 100
-	x = np.arange(0, min((max(r_a), max(r_b))), bin_width)
-	int_y_a = np.interp(x, r_a, pow_a)
-	int_y_b = np.interp(x, r_b, pow_b)
+	uv = np.arange(0, min((max(r_a), max(r_b))), bin_width)
+	int_pow_a = np.interp(uv, r_a, pow_a)
+	int_pow_b = np.interp(uv, r_b, pow_b)
+
+	ratio = int_pow_b / int_pow_a
+	err = 1 / (np.mean((int_pow_b, int_pow_a), axis=0))
 
 	# Plots
 	grid = plt.GridSpec(2, 3, width_ratios=[1, 1, 2])
@@ -226,20 +230,23 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	plt.semilogy(r_b/1000, pow_b, c='g', **line_props)
 	plt.ylabel(name_b)
 
-	plt.subplot(grid[0,1], sharex=ax1, sharey=ax1)
-	plt.semilogy(x/1000, int_y_a, 'b.', mew=0)
+	ax3 = plt.subplot(grid[0,1], sharey=ax1)
+	plt.semilogy(uv/1000, int_pow_a, 'b.', mew=0)
 	plt.title('Interpolated PSD')
 	plt.gca().get_xaxis().set_visible(False)
 	plt.gca().get_yaxis().set_visible(False)
+	plt.xlim(-0.25, None)
 	
-	plt.subplot(grid[1,1], sharex=ax1, sharey=ax1)
-	plt.semilogy(x/1000, int_y_b, 'g.', mew=0)
+	plt.subplot(grid[1,1], sharex=ax3, sharey=ax1)
+	plt.semilogy(uv/1000, int_pow_b, 'g.', mew=0)
 	plt.gca().get_yaxis().set_visible(False)
+	plt.xlim(-0.25, None)
 
-	ax5 = plt.subplot(grid[:, 2], sharex=ax1)
-	plt.errorbar(x/1000, int_y_b / int_y_a, yerr=1/np.mean((int_y_a, int_y_b), axis=0), fmt='o')
+	ax5 = plt.subplot(grid[:, 2], sharex=ax3)
+	plt.errorbar(uv/1000, ratio, yerr=err, fmt='o')
 	plt.title('Comparison of PSD')
 	ax5.yaxis.tick_right()
+	plt.xlim(-0.25, None)
 
 
 	
