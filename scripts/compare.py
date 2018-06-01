@@ -149,7 +149,7 @@ def get_psd(smap, amps):
 	for i, u in enumerate(us):
 		for j, v in enumerate(vs):
 			uvdist.append(np.linalg.norm((u, v)))
-			power.append(fft[i, j])
+			power.append(np.abs(fft[i, j]))
 
 	# This will sort the arrays by uvdist but maintain link between distance and power
 	uvdist, power = zip(*sorted(zip(uvdist, power)))	
@@ -200,8 +200,8 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	# Get bin the data
 	bin_width = 100
 	x = np.arange(0, min((max(r_a), max(r_b))), bin_width)
-	int_y_a = np.interp(x, r_a, np.real(pow_a))
-	int_y_b = np.interp(x, r_b, np.real(pow_b))
+	int_y_a = np.interp(x, r_a, pow_a)
+	int_y_b = np.interp(x, r_b, pow_b)
 
 	# Plots
 	grid = plt.GridSpec(2, 3, width_ratios=[1, 1, 2])
@@ -236,7 +236,8 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	fig.text(0.04, 0.5, 'Power', fontsize=14, va='center', rotation = 'vertical')
 	fig.text(0.5, 0.04, r'UV Distance ($k\lambda$)', ha='center', fontsize=14)
 	fig.text(0.96, 0.5, r'Power ratio', va='center', fontsize=14, rotation='vertical')
-	
+
+	plt.subplots_adjust(wspace=0.0, hspace=0.0)	
 	plt.show()
 
 
