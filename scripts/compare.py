@@ -198,12 +198,12 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 		'lw': 1,
 	}
 	# Mask the Data
-	thresh_a = 1e3
+	thresh_a = 2*287
 	mask_a = pow_a >  thresh_a
 	r_a = r_a[mask_a]
 	pow_a = pow_a[mask_a]
 
-	thresh_b = 1e2
+	thresh_b = 2*2777
 	mask_b = pow_b > thresh_b
 	r_b  = r_b[mask_b]
 	pow_b = pow_b[mask_b]
@@ -243,11 +243,11 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	plt.xlim(-0.25, None)
 
 	ax5 = plt.subplot(grid[:, 2], sharex=ax3)
-	plt.errorbar(uv/1000, ratio, yerr=err, fmt='o')
+	plt.errorbar(uv/1000, ratio, yerr=1e4*err, fmt='o')
 	plt.title('Comparison of PSD')
 	ax5.yaxis.tick_right()
 	plt.xlim(-0.25, None)
-
+	plt.axhline(1, ls='--', c='k')
 
 	
 	fig.text(0.04, 0.5, 'Power', fontsize=14, va='center', rotation = 'vertical')
