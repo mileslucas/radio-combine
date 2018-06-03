@@ -163,8 +163,8 @@ def get_psd(image):
 	uvdist, power = zip(*sorted(zip(uvdist, power)))	
 	
 	image['psd'] = {
-		'uv': uvdist,
-		'pow': power
+		'uv': np.array(uvdist),
+		'pow': np.array(power)
 	}
 
 	return image
