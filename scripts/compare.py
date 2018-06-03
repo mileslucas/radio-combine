@@ -10,7 +10,7 @@ ia = casac.image()
 tb = casac.table()
 log = casac.logsink()
 
-def compare(image_a, image_b, regrid=False, plot=True):
+def compare(path_a, path_b, regrid=False, plot=True):
 	'''
 	Compare the given images
 
@@ -32,7 +32,7 @@ def compare(image_a, image_b, regrid=False, plot=True):
 		[psd_a, psd_b] where each psd consists of [freq, pow]. 
 	'''
 	if regrid:
-		image_b = regrid_im(image_a, image_b)
+		path_b = regrid_im(image_a, image_b)
 	smap_a, amps_a, noise_a = get_arrays(image_a)
 	smap_b, amps_b, noise_b = get_arrays(image_b)
 
@@ -84,7 +84,7 @@ def regrid_im(image_a, image_b):
 	return outname
 
 
-def get_arrays(image_path):
+def get_data(image_path):
 	'''
 	Gets the numpy array for a given image_path
 	
@@ -101,25 +101,27 @@ def get_arrays(image_path):
 		A 2 dimensional array of the powers of the fft
 	'''
 
+	image = {'path': image_path}
 	# Get the Powers
 	tb.open(image_path)
-	amps = np.squeeze(tb.getcol('map'))
+	image['amps'] = np.squeeze(tb.getcol('map'))
 	tb.close()
 
 	# Get the sky map axes
 	ia.open(image_path)
 	summ = ia.summary()
 	stats = ia.statistics()
+	image['name'] = ia.name()
 	ia.close()
-
-	smap = {
+	
+	image['smap'] = {
 		'n_x': summ['shape'][0],
 		'd_x': summ['incr'][0],
 		'n_y': summ['shape'][1],
 		'd_y': summ['incr'][1],
 	}
-	noise = stats['sigma']
-	return smap, amps, noise
+	image['noise'] = stats['sigma']
+	return image
 
 
 def get_psd(smap, amps, noise):
