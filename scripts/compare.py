@@ -33,8 +33,8 @@ def compare(path_a, path_b, regrid=False, plot=True):
 	'''
 	if regrid:
 		path_b = regrid_im(image_a, image_b)
-	smap_a, amps_a, noise_a = get_arrays(image_a)
-	smap_b, amps_b, noise_b = get_arrays(image_b)
+	image_a = get_data(path_a)
+	image_b = get_data(path_b)
 
 	r_a, pow_a, ft_noise_a = get_psd(smap_a, amps_a, noise_a)
 	r_b, pow_b, ft_noise_b = get_psd(smap_b, amps_b, noise_b)
@@ -132,29 +132,26 @@ def get_data(image_path):
 	return image
 
 
-def get_psd(smap, amps, noise):
+def get_psd(image):
 	'''
 	Creates a power spectrum density (PSD) from given skymap axis information and 2D amplitudes
 
 	Params
 	-------
-	smap: dict
-		The relevant skymap axis information. There should be four keys: 'n_x' and 'n_y' are
-		the length of each axis and 'd_x' and 'd_y' are the increments in degrees of each axis
-	amps: ndarray
-		The 2-dimensional amplitude map of the image
+	image: dict
+		The relevant image information. See output of `get_data` for expected items
 
 	Returns
 	-------
-	uvdist: ndarray
-		The square distance of each fourier point from the origin
-	power: ndarray
-		The unnormalized power of the  fourier transform
+	image: dict
+		A dictionary containing all the original information plus the following:
+		psd: dict
+			A dictionary containing the uvdist and power
 	'''
 	# Get the frequencies
-	us = np.fft.fftfreq(smap['n_x'], smap['d_x'])
-	vs = np.fft.fftfreq(smap['n_y'], smap['d_y'])
-	fft = np.fft.fft2(amps)
+	us = np.fft.fftfreq(image['smap']['n_x'], image['smap']['d_x'])
+	vs = np.fft.fftfreq(image['smap']['n_y'], image['smap']['d_y'])
+	fft = np.fft.fft2(image['amps'])
 	uvdist = []
 	power = []
 	for i, u in enumerate(us):
@@ -164,13 +161,29 @@ def get_psd(smap, amps, noise):
 
 	# This will sort the arrays by uvdist but maintain link between distance and power
 	uvdist, power = zip(*sorted(zip(uvdist, power)))	
-
-	# Transform data noise into phase space noise
-	samps = np.random.normal(loc=0, scale=noise, size=1000)
-	ft_samps = np.fft.fft(samps)
-	ft_noise = np.mean(np.abs(ft_samps))
 	
-	return np.array(uvdist), np.array(power), ft_noise
+	image['psd'] = {
+		'uv': uvdist,
+		'pow': power
+	}
+
+	return image
+
+def mask_psd(image, num_samps=1000, threshold=2):
+	'''
+	'''
+	
+	samps = np.random.normal(loc=0, scale=image['noise'], size=num_samps)
+	ft_samps = np.fft.fft(samps)
+	image['ft_noise']= np.mean(np.abs(ft_samps))
+
+	mask = image['psd']['pow'] > threshold * image['ft_noise']
+	image['mask_psd'] = {
+		'pow': image['psd']['pow'][mask],
+		'uv': image['psd']['uv'][mask]
+	}
+	return image
+
 
 def comparison_plot(r_a, pow_a, ft_noise_a,  name_a, r_b, pow_b, ft_noise_b, name_b):
 	'''
