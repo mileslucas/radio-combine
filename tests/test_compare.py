@@ -36,20 +36,22 @@ class TestGetPSD(unittest.TestCase):
 class TestMaskPSD(unittest.TestCase):
 
 	def setUp(self):
-		im = compare.get_data
+		im = compare.get_data(data_path)
 		im = compare.get_psd(im)
 		self.im = compare.mask_psd(im)
 
 	def test_mask_psd_exists(self):
-		self.assertTrue('mask_psd' in list(self.im))
+		expected = ['mask_psd', 'ft_noise']
+		self.assertTrue(all([k in list(self.im) for k in expected]))
 
 	def test_mask_psd_keys(self):
-		expected = ['uv', 'pow']  
-		self.assertTrue(all([k in list(self.im['psd']) for k in expected]))
+		expected = ['uv', 'pow', 'thresh']  
+		self.assertTrue(all([k in list(self.im['mask_psd']) for k in expected]))
 
 	def test_mask_psd_vals(self):
-		im2 = compare.mask_psd(self.im, threshold=3)
-		self.assertTrue(im2['mask_psd']['thresh'] > self.im['mask_psd']['thresh'])
+		t1 = self.im['mask_psd']['thresh']
+		im2 = compare.mask_psd(self.im, nsigma=3)
+		self.assertTrue(im2['mask_psd']['thresh'] > t1)
 	
 
 if __name__=='__main__':

@@ -169,18 +169,19 @@ def get_psd(image):
 
 	return image
 
-def mask_psd(image, num_samps=1000, threshold=2):
+def mask_psd(image, num_samps=1000, nsigma=2):
 	'''
 	'''
 	
 	samps = np.random.normal(loc=0, scale=image['noise'], size=num_samps)
 	ft_samps = np.fft.fft(samps)
 	image['ft_noise']= np.mean(np.abs(ft_samps))
-
-	mask = image['psd']['pow'] > threshold * image['ft_noise']
+	thresh = nsigma * image['ft_noise']
+	mask = image['psd']['pow'] > thresh
 	image['mask_psd'] = {
 		'pow': image['psd']['pow'][mask],
-		'uv': image['psd']['uv'][mask]
+		'uv': image['psd']['uv'][mask],
+		'thresh': thresh
 	}
 	return image
 
