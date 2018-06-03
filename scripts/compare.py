@@ -33,11 +33,17 @@ def compare(path_a, path_b, regrid=False, plot=True):
 	'''
 	if regrid:
 		path_b = regrid_im(image_a, image_b)
+
 	image_a = get_data(path_a)
 	image_b = get_data(path_b)
 
-	r_a, pow_a, ft_noise_a = get_psd(smap_a, amps_a, noise_a)
-	r_b, pow_b, ft_noise_b = get_psd(smap_b, amps_b, noise_b)
+	image_a = get_psd(image_a)
+	image_b = get_psd(image_b)
+
+	image_a = mask_psd(image_a)
+	image_b = mask_psd(image_b)
+
+	ratio = get_ratio(image_a, image_b)
 
 	if plot:
 		comparison_plot(r_a, pow_a, ft_noise_a,  image_a, r_b, pow_b, ft_noise_b, image_b)
@@ -171,6 +177,24 @@ def get_psd(image):
 
 def mask_psd(image, num_samps=1000, nsigma=2):
 	'''
+	Masks the psd based on the noise floor of the original image
+
+	Params
+	------
+	image: dict
+		The dictionary of image information. The passed dictionary requires 
+		a 'psd' dictionary with 'uv' and 'pow' keys as well as 
+	nsigma: int or float
+		The number of sigma above which to accept. 
+
+	num_samps: int
+		The number of random samples for sampling the noise of the image
+
+	Returns
+	-------
+	image: dict
+		The same input dictionary with an additional `mask_psd` dict that
+		mimics the original psd with masking and the threshold
 	'''
 	
 	samps = np.random.normal(loc=0, scale=image['noise'], size=num_samps)
@@ -184,6 +208,39 @@ def mask_psd(image, num_samps=1000, nsigma=2):
 		'thresh': thresh
 	}
 	return image
+
+def get_ratio(image_a, image_b, bin_width=100)
+	'''
+	Interpolates the psd of both images and gets the ratio of those interpolations.
+
+	Params
+	-----
+	image_a: dict
+		The image dictionary for the first image
+	image_b: dict
+		The image dictionary for the second image
+
+	Returns
+	-------
+	ratio: dict
+		A dictionary with the following keys and values
+		uv: array-like
+			The uv distance of the interpolated values
+		ratio: array-like
+			The PSD power ratio (b/a) of the interpolated values
+		err: array-like
+			The pointwise error of the power ratio
+		
+	'''
+	
+	uv = np.arange(0, min((max(image_a['mask_psd']['uv']), max(image_a['mask_psd']['uv']))), bin_width)
+	int_pow_a = np.interp(uv, image_a['mask_psd']['uv'], image_a['mask_psd']['pow'])
+	int_pow_b = np.interp(uv, image_b['mask_psd']['uv'], image_b['mask_psd']['pow'])
+
+	ratio = int_pow_b / int_pow_a
+	err = 1 / (np.mean((int_pow_b, int_pow_a), axis=0))
+	
+	return {'uv':uv, 'ratio':ratio, 'err':err}
 
 
 def comparison_plot(r_a, pow_a, ft_noise_a,  name_a, r_b, pow_b, ft_noise_b, name_b):
@@ -227,26 +284,6 @@ def comparison_plot(r_a, pow_a, ft_noise_a,  name_a, r_b, pow_b, ft_noise_b, nam
 		'alpha': 0.4,
 		'lw': 1,
 	}
-	# Mask the Data
-	thresh_a = 2 * ft_noise_a
-	mask_a = pow_a >  thresh_a
-	r_a = r_a[mask_a]
-	pow_a = pow_a[mask_a]
-
-	thresh_b = 2 * ft_noise_b
-	mask_b = pow_b > thresh_b
-	r_b  = r_b[mask_b]
-	pow_b = pow_b[mask_b]
-
-	# Get bin the data
-	bin_width = 100
-	uv = np.arange(0, min((max(r_a), max(r_b))), bin_width)
-	int_pow_a = np.interp(uv, r_a, pow_a)
-	int_pow_b = np.interp(uv, r_b, pow_b)
-
-	ratio = int_pow_b / int_pow_a
-	err = 1 / (np.mean((int_pow_b, int_pow_a), axis=0))
-	scale = .1 / min(err)
 
 	# Plots
 	grid = plt.GridSpec(2, 3, width_ratios=[1, 1, 2])
