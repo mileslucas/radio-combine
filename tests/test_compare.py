@@ -53,7 +53,35 @@ class TestMaskPSD(unittest.TestCase):
 		im2 = compare.mask_psd(self.im, nsigma=3)
 		self.assertTrue(im2['mask_psd']['thresh'] > t1)
 	
+class TestGetRatio(unittest.TestCase):
 
+	def setUp(self):
+		im1 = compare.get_data(data_path)
+		im1 = compare.get_psd(im1)
+		self.im1 = compare.mask_psd(im1)
+		
+		im2 = compare.get_data('data/orion.gbt.noisy.im')
+		im2 = compare.get_psd(im2)
+		self.im2 = compare.mask_psd(im2)
+		self.ratio = compare.get_ratio(self.im1, self.im2)
+
+	def test_ratio_keys(self):
+		expected = ['uv', 'ratio', 'err']
+		self.assertTrue(all([k in list(self.ratio) for k in expected]))
+
+	def test_ratio_shapes(self):
+		self.assertEqual(self.ratio['uv'].shape, self.ratio['ratio'].shape)
+		self.assertEqual(self.ratio['uv'].shape, self.ratio['err'].shape)
+
+	def test_err_vals(self):
+		expect = 1 / np.mean((self.im1['mask_psd']['pow'][0], self.im2['mask_psd']['pow'][0]))
+		self.assertTrue(np.isclose(self.ratio['err'][0], expect))
+
+	def test_interp_width(self):
+		r2 = compare.get_ratio(self.im1, self.im2, bin_width=50)
+		self.assertTrue(len(r2['uv']) > len(self.ratio['uv']))
+
+				
 if __name__=='__main__':
 	unittest.main()	
 

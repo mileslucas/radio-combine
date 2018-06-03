@@ -209,7 +209,7 @@ def mask_psd(image, num_samps=1000, nsigma=2):
 	}
 	return image
 
-def get_ratio(image_a, image_b, bin_width=100)
+def get_ratio(image_a, image_b, bin_width=100):
 	'''
 	Interpolates the psd of both images and gets the ratio of those interpolations.
 
