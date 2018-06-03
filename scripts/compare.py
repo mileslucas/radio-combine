@@ -94,11 +94,19 @@ def get_data(image_path):
 		The path to the image
 	
 	Returns
-	-------
-	smap: dict
-		A dictionary with the relevant skymap axis information. 
-	pow: ndarray
-		A 2 dimensional array of the powers of the fft
+	------
+	image: dict
+		A dictionary containing the following information
+		path: str
+			The image path
+		name: str
+			The image name
+		amps: ndarray
+			Two dimensional array of the image map
+		noise: float
+			The sigma value of the image for use in evaluating noise threshold later
+		smap: dict
+			A dictionary holding the length and increments of the skymap axes
 	'''
 
 	image = {'path': image_path}
@@ -109,7 +117,7 @@ def get_data(image_path):
 
 	# Get the sky map axes
 	ia.open(image_path)
-	summ = ia.summary()
+	summ = ia.summary(list=False)
 	stats = ia.statistics()
 	image['name'] = ia.name()
 	ia.close()
