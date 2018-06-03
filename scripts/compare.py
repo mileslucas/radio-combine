@@ -33,14 +33,14 @@ def compare(image_a, image_b, regrid=False, plot=True):
 	'''
 	if regrid:
 		image_b = regrid_im(image_a, image_b)
-	smap_a, amps_a = get_arrays(image_a)
-	smap_b, amps_b = get_arrays(image_b)
+	smap_a, amps_a, noise_a = get_arrays(image_a)
+	smap_b, amps_b, noise_b = get_arrays(image_b)
 
-	r_a, pow_a = get_psd(smap_a, amps_a)
-	r_b, pow_b = get_psd(smap_b, amps_b)
+	r_a, pow_a, ft_noise_a = get_psd(smap_a, amps_a, noise_a)
+	r_b, pow_b, ft_noise_b = get_psd(smap_b, amps_b, noise_b)
 
 	if plot:
-		comparison_plot(r_a, pow_a, image_a, r_b, pow_b, image_b)
+		comparison_plot(r_a, pow_a, ft_noise_a,  image_a, r_b, pow_b, ft_noise_b, image_b)
 	
 
 	# Verify Fourier transform property
@@ -109,6 +109,7 @@ def get_arrays(image_path):
 	# Get the sky map axes
 	ia.open(image_path)
 	summ = ia.summary()
+	stats = ia.statistics()
 	ia.close()
 
 	smap = {
@@ -117,11 +118,11 @@ def get_arrays(image_path):
 		'n_y': summ['shape'][1],
 		'd_y': summ['incr'][1],
 	}
+	noise = stats['sigma']
+	return smap, amps, noise
 
-	return smap, amps
 
-
-def get_psd(smap, amps):
+def get_psd(smap, amps, noise):
 	'''
 	Creates a power spectrum density (PSD) from given skymap axis information and 2D amplitudes
 
@@ -154,9 +155,14 @@ def get_psd(smap, amps):
 	# This will sort the arrays by uvdist but maintain link between distance and power
 	uvdist, power = zip(*sorted(zip(uvdist, power)))	
 
-	return np.array(uvdist), np.array(power)
+	# Transform data noise into phase space noise
+	samps = np.random.normal(loc=0, scale=noise, size=1000)
+	ft_samps = np.fft.fft(samps)
+	ft_noise = np.mean(np.abs(ft_samps))
+	
+	return np.array(uvdist), np.array(power), ft_noise
 
-def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
+def comparison_plot(r_a, pow_a, ft_noise_a,  name_a, r_b, pow_b, ft_noise_b, name_b):
 	'''
 	Plots comparison of the two power spectrum. This method will throw an exception if 
 	there is no display. 
@@ -198,12 +204,12 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 		'lw': 1,
 	}
 	# Mask the Data
-	thresh_a = 2*287
+	thresh_a = 2 * ft_noise_a
 	mask_a = pow_a >  thresh_a
 	r_a = r_a[mask_a]
 	pow_a = pow_a[mask_a]
 
-	thresh_b = 2*2777
+	thresh_b = 2 * ft_noise_b
 	mask_b = pow_b > thresh_b
 	r_b  = r_b[mask_b]
 	pow_b = pow_b[mask_b]
@@ -216,6 +222,7 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 
 	ratio = int_pow_b / int_pow_a
 	err = 1 / (np.mean((int_pow_b, int_pow_a), axis=0))
+	scale = .1 / min(err)
 
 	# Plots
 	grid = plt.GridSpec(2, 3, width_ratios=[1, 1, 2])
@@ -243,7 +250,7 @@ def comparison_plot(r_a, pow_a, name_a, r_b, pow_b, name_b):
 	plt.xlim(-0.25, None)
 
 	ax5 = plt.subplot(grid[:, 2], sharex=ax3)
-	plt.errorbar(uv/1000, ratio, yerr=1e4*err, fmt='o')
+	plt.errorbar(uv/1000, ratio, yerr=scale*err, fmt='o')
 	plt.title('Comparison of PSD')
 	ax5.yaxis.tick_right()
 	plt.xlim(-0.25, None)
