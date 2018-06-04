@@ -32,12 +32,12 @@ In order to run tests, the CASA python needs to be located and unittest must be 
 
 To run the unittests 
 ```
-$ <CASA python bin> -m unittest tests.runner
+$ <CASA python bin> -m unittest discover -v
 ```
 
 This will run a test suite runner for all scripts. If a specific script is to be tested, use the explicit test script for that
 ```
-$ <CASA python bin> -m unittest tests.test_<script>
+$ <CASA python bin> -m unittest -v tests.test_<script>
 ```
 ## Acknowledgements
 
