@@ -8,7 +8,7 @@ This repository will hold the scripts and documentation for analyzing combinatio
 Creates comparison data between two images based on the radial average of their Fourier transform.
 
 ```
-<1>: run compare.py -h
+CASA<1>: run compare.py -h
 usage: compare.py [-h] [-r] [-n] image_a image_b
 
 positional arguments:
@@ -21,10 +21,24 @@ optional arguments:
   -n, --no-plot
 ```
 
+Basic example:
 ```
-<1>: run compare.py data/orion.gbt.im data/orion.gbt.noisy.im
+CASA<1>: run compare.py data/orion.gbt.im data/orion.gbt.noisy.im
 ```
 
+## Tests
+
+In order to run tests, the CASA python needs to be located and unittest must be run. For instance, my CASA python is located at `/home/casa/packages/RHEL6/release/current/bin/python`. 
+
+To run the unittests 
+```
+$ <CASA python bin> -m unittest tests.runner
+```
+
+This will run a test suite runner for all scripts. If a specific script is to be tested, use the explicit test script for that
+```
+$ <CASA python bin> -m unittest tests.test_<script>
+```
 ## Acknowledgements
 
 This work was funded by the National Science Foundation in partnership with the National Radio Astronomy Observatory. Thank you to Dr. Kumar Golap and Dr. Tak Tsutsumi for their guidance and assistance. 
