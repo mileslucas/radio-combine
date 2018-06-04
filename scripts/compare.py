@@ -27,12 +27,11 @@ def compare(path_a, path_b, regrid=False, plot=True):
 
 	Returns
 	-------
-	psds: ndarray
-		This is a 2x2 array with the two power spectrum densities for each image. The format is
-		[psd_a, psd_b] where each psd consists of [freq, pow]. 
+	ratio: dict
+		The dictionary of the ratio of each image. See `get_ratio` for more information. 
 	'''
 	if regrid:
-		path_b = regrid_im(image_a, image_b)
+		path_b = regrid_im(path_a, path_b)
 
 	image_a = get_data(path_a)
 	image_b = get_data(path_b)
@@ -46,16 +45,9 @@ def compare(path_a, path_b, regrid=False, plot=True):
 	ratio = get_ratio(image_a, image_b)
 
 	if plot:
-		comparison_plot(r_a, pow_a, ft_noise_a,  image_a, r_b, pow_b, ft_noise_b, image_b)
+		comparison_plot(image_a, image_b, ratio)
 	
-
-	# Verify Fourier transform property
-	idx = r_a == 0
-	log.post('Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_a, np.real(pow_a[idx][0]), np.sum(amps_a) == pow_a[idx]))
-	idx = r_b == 0
-	log.post('Image: {}\nTotal power: {}\nMatches image: {}\n'.format(image_b, np.real(pow_b[idx][0]), np.sum(amps_b) == pow_b[idx]))
-	return [[r_a, pow_a], [r_b, pow_b]]
-
+	return ratio
 	
 
 def regrid_im(image_a, image_b):
@@ -300,7 +292,7 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 	plt.title('PSD')
 	plt.gca().get_xaxis().set_visible(False)
 
-	plt.subplot(grid[1,0], sharex=ax1, sharey=ax1)
+	ax2 = plt.subplot(grid[1,0], sharex=ax1)
 	plt.semilogy(image_b['psd']['uv']/1000, image_b['psd']['pow'], c='0.7', **line_props)
 	plt.semilogy(image_b['mask_psd']['uv']/1000, image_b['mask_psd']['pow'], c='g', **line_props)
 	plt.ylabel(image_a['name'])
@@ -312,7 +304,7 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 	plt.gca().get_yaxis().set_visible(False)
 	plt.xlim(-0.25, None)
 	
-	plt.subplot(grid[1,1], sharex=ax3, sharey=ax1)
+	plt.subplot(grid[1,1], sharex=ax3, sharey=ax2)
 	plt.semilogy(ratio['uv']/1000, ratio['pow_b'], 'g.', mew=0)
 	plt.gca().get_yaxis().set_visible(False)
 	plt.xlim(-0.25, None)
@@ -332,7 +324,9 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 
 	plt.subplots_adjust(wspace=0.0, hspace=0.0)	
 	plt.show()
-
+	
+	if save is not None:
+		plt.savefig(save)
 
 	
 
