@@ -3,6 +3,7 @@
 
 import numpy as np
 import argparse
+from scipy.optimize import leastsq
 
 # CASA imports
 from casac import casac
@@ -41,6 +42,9 @@ def compare(path_a, path_b, regrid=False, plot=True):
 
 	image_a = mask_psd(image_a)
 	image_b = mask_psd(image_b)
+
+	image_a = fit_psd(image_a)
+	image_b = fit_psd(image_b)
 
 	ratio = get_ratio(image_a, image_b)
 
@@ -200,6 +204,32 @@ def mask_psd(image, nsigma=2, num_samps=1000):
 		'thresh': thresh
 	}
 	return image
+
+def fit_psd(image):
+	'''
+	'''
+
+	def model(p, x):
+		W, alpha, A, s = p
+		if W < 0 or alpha <=0 or A < 0 or s <=0:
+			return np.inf
+		sinc = np.array([np.sin(np.pi * alpha * xi) / (np.pi * alpha * xi) if xi != 0 else 1 for xi in x])
+		gaus = A / s * np.exp(-0.5 * (x / s)**2)
+		
+		return W + sinc * gaus
+	def errfunc(p, x, y):
+		return model(p, x) - y
+	p0 = [0, 100, 1e6, 1e4]
+	p1, success = leastsq(errfunc, p0, args=(image['psd']['uv'], image['psd']['pow']))
+
+	log.post(repr(p1))	
+	
+	image['fit_params'] = p1
+	image['best_fit'] = lambda x: model(p1, x)
+			
+	return image
+
+
 
 def get_ratio(image_a, image_b, bin_width=100):
 	'''
