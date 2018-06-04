@@ -175,7 +175,7 @@ def get_psd(image):
 
 	return image
 
-def mask_psd(image, num_samps=1000, nsigma=2):
+def mask_psd(image, nsigma=2, num_samps=1000):
 	'''
 	Masks the psd based on the noise floor of the original image
 
@@ -219,6 +219,8 @@ def get_ratio(image_a, image_b, bin_width=100):
 		The image dictionary for the first image
 	image_b: dict
 		The image dictionary for the second image
+	bin_width: int (optional)
+		The width (in wavelengths) of each bin for interpolation. Default=100
 
 	Returns
 	-------
@@ -226,6 +228,10 @@ def get_ratio(image_a, image_b, bin_width=100):
 		A dictionary with the following keys and values
 		uv: array-like
 			The uv distance of the interpolated values
+		pow_a: array-like
+			The interpolated power from image a
+		pow_b: array-like
+			The interpolated power from image b
 		ratio: array-like
 			The PSD power ratio (b/a) of the interpolated values
 		err: array-like
@@ -240,28 +246,27 @@ def get_ratio(image_a, image_b, bin_width=100):
 	ratio = int_pow_b / int_pow_a
 	err = 1 / (np.mean((int_pow_b, int_pow_a), axis=0))
 	
-	return {'uv':uv, 'ratio':ratio, 'err':err}
+	return {'uv':uv, 'pow_a': int_pow_a, 'pow_b': int_pow_b, 'ratio':ratio, 'err':err}
 
 
-def comparison_plot(r_a, pow_a, ft_noise_a,  name_a, r_b, pow_b, ft_noise_b, name_b):
+def comparison_plot(image_a, image_b, ratio, save=None):
 	'''
 	Plots comparison of the two power spectrum. This method will throw an exception if 
 	there is no display. 
 	
 	Params
 	------
-	r_a: array-like
-		The distances of the psd for the first image
-	pow_a: array-like
-		The powers of the psd for the first image
-	name_a: str
-		The name of the first image or dataset
-	r_b: array-like
-		The distances of the psd for the second image
-	pow_b: array-like
-		The powers of the psd for the second image
-	name_b: str
-		The name of the second image or dataset
+	image_a: dict
+		The dictionary with values for the first image. Must have masked psd.
+
+	image_b: dict
+		The dictionary with values for the second image. Must have masked psd.
+
+	ratio: dict
+		A dictionary for the ratio between the two images. See `get_ratio` for more information.
+
+	save: str (optional)
+		The filename to save the comparison plot. If none, the plot will not be saved. Default=None.
 	'''
 	import matplotlib.pyplot as plt
 	import matplotlib as mpl
@@ -289,29 +294,32 @@ def comparison_plot(r_a, pow_a, ft_noise_a,  name_a, r_b, pow_b, ft_noise_b, nam
 	grid = plt.GridSpec(2, 3, width_ratios=[1, 1, 2])
 	fig = plt.figure(figsize=(18,9))
 	ax1 = plt.subplot(grid[0,0])
-	plt.semilogy(r_a/1000, pow_a, c='b', **line_props)
-	plt.ylabel(name_a)
+	plt.semilogy(image_a['psd']['uv']/1000, image_a['psd']['pow'], c='0.7', **line_props)
+	plt.semilogy(image_a['mask_psd']['uv']/1000, image_a['mask_psd']['pow'], c='b', **line_props)
+	plt.ylabel(image_a['name'])
 	plt.title('PSD')
 	plt.gca().get_xaxis().set_visible(False)
 
 	plt.subplot(grid[1,0], sharex=ax1, sharey=ax1)
-	plt.semilogy(r_b/1000, pow_b, c='g', **line_props)
-	plt.ylabel(name_b)
+	plt.semilogy(image_b['psd']['uv']/1000, image_b['psd']['pow'], c='0.7', **line_props)
+	plt.semilogy(image_b['mask_psd']['uv']/1000, image_b['mask_psd']['pow'], c='g', **line_props)
+	plt.ylabel(image_a['name'])
 
 	ax3 = plt.subplot(grid[0,1], sharey=ax1)
-	plt.semilogy(uv/1000, int_pow_a, 'b.', mew=0)
+	plt.semilogy(ratio['uv']/1000, ratio['pow_a'], 'b.', mew=0)
 	plt.title('Interpolated PSD')
 	plt.gca().get_xaxis().set_visible(False)
 	plt.gca().get_yaxis().set_visible(False)
 	plt.xlim(-0.25, None)
 	
 	plt.subplot(grid[1,1], sharex=ax3, sharey=ax1)
-	plt.semilogy(uv/1000, int_pow_b, 'g.', mew=0)
+	plt.semilogy(ratio['uv']/1000, ratio['pow_b'], 'g.', mew=0)
 	plt.gca().get_yaxis().set_visible(False)
 	plt.xlim(-0.25, None)
 
 	ax5 = plt.subplot(grid[:, 2], sharex=ax3)
-	plt.errorbar(uv/1000, ratio, yerr=scale*err, fmt='o')
+	scale = 0.1 / min(ratio['err'])
+	plt.errorbar(ratio['uv']/1000, ratio['ratio'], yerr=scale * ratio['err'], fmt='o')
 	plt.title('Comparison of PSD')
 	ax5.yaxis.tick_right()
 	plt.xlim(-0.25, None)

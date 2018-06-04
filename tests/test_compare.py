@@ -66,15 +66,17 @@ class TestGetRatio(unittest.TestCase):
 		self.ratio = compare.get_ratio(self.im1, self.im2)
 
 	def test_ratio_keys(self):
-		expected = ['uv', 'ratio', 'err']
+		expected = ['uv', 'pow_a', 'pow_b', 'ratio', 'err']
 		self.assertTrue(all([k in list(self.ratio) for k in expected]))
 
 	def test_ratio_shapes(self):
 		self.assertEqual(self.ratio['uv'].shape, self.ratio['ratio'].shape)
 		self.assertEqual(self.ratio['uv'].shape, self.ratio['err'].shape)
+		self.assertEqual(self.ratio['uv'].shape, self.ratio['pow_a'].shape)
+		self.assertEqual(self.ratio['uv'].shape, self.ratio['pow_b'].shape)
 
 	def test_err_vals(self):
-		expect = 1 / np.mean((self.im1['mask_psd']['pow'][0], self.im2['mask_psd']['pow'][0]))
+		expect = 1 / np.mean((self.ratio['pow_a'][0], self.ratio['pow_b'][0]))
 		self.assertTrue(np.isclose(self.ratio['err'][0], expect))
 
 	def test_interp_width(self):
