@@ -11,7 +11,7 @@ ia = casac.image()
 tb = casac.table()
 log = casac.logsink()
 
-def compare(path_a, path_b, regrid=False, binwidth=500,  plot=True):
+def compare(path_a, path_b, regrid=False, binwidth=500,  plot=True, save=None):
 	'''
 	Compare the given images
 
@@ -22,11 +22,14 @@ def compare(path_a, path_b, regrid=False, binwidth=500,  plot=True):
 	image_b: str
 		The path to the second image
 	regrid: bool (optional)
-		If true, regrids the second image to the first image's coordinate system. Default=False
+		If true, regrids the second image to the first image's coordinate system. 
+		Default=False
 	binwidth: int (optional)
 		The width of the bins for averaging the psds when creating the ratio. Default=500
 	plot: bool (optional)
 		If true, creates plots of the power spectra. Default=True
+	save: str (optional)
+		If not None, will save the produced plot at this filename. Default=None
 
 	Returns
 	-------
@@ -311,23 +314,22 @@ def get_ratio(image_a, image_b, bin_width=500):
 	image_b: dict
 		The image dictionary for the second image
 	bin_width: int (optional)
-		The width (in wavelengths) of each bin for interpolation. Default=100
+		The width (in wavelengths) of each bin. Default=500
 
 	Returns
 	-------
 	ratio: dict
 		A dictionary with the following keys and values
 		uv: array-like
-			The uv distance of the interpolated values
+			The uv distance of the binned values
 		pow_a: array-like
-			The interpolated power from image a
+			The binned power from image a
 		pow_b: array-like
-			The interpolated power from image b
+			The binned power from image b
 		ratio: array-like
-			The PSD power ratio (b/a) of the interpolated values
+			The PSD power ratio (b/a) of the binned values
 		err: array-like
 			The pointwise error of the power ratio
-		
 	'''
 	
 	uv = np.arange(0, min((max(image_a['psd']['uv']), max(image_a['psd']['uv']))), bin_width)
@@ -356,10 +358,12 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 		The dictionary with values for the second image. Must have masked psd.
 
 	ratio: dict
-		A dictionary for the ratio between the two images. See `get_ratio` for more information.
+		A dictionary for the ratio between the two images. See `get_ratio` for 
+		more information.
 
 	save: str (optional)
-		The filename to save the comparison plot. If none, the plot will not be saved. Default=None.
+		The filename to save the comparison plot. If none, the plot will not 
+		be saved. Default=None.
 	'''
 	import matplotlib.pyplot as plt
 	import matplotlib as mpl
@@ -401,7 +405,8 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 
 	ax3 = plt.subplot(grid[0, 2], sharex=ax1)
 	scale = 0.1 / min(ratio['err'])
-	plt.errorbar(ratio['uv']/1000, ratio['ratio'], yerr=scale * ratio['err'], fmt='ro', ecolor='0.3',)
+	plt.errorbar(ratio['uv']/1000, ratio['ratio'], yerr=scale * ratio['err'], 
+			fmt='ro', ecolor='0.3',)
 	plt.yscale('log')
 	plt.title('Comparison of PSD')
 	ax3.yaxis.tick_right()
@@ -420,10 +425,19 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
+	parser = argparse.ArgumentParser(description='Compare the two images by getting \
+			the PSD, binning them, and getting the ratio of the two. Ideally \
+			this raito should be 1.0 near the 0 uv point')
 	parser.add_argument('image_a', help='path to the first image')
 	parser.add_argument('image_b', help='path to the second image')
-	parser.add_argument('-r', '--regrid', action='store_true', help="regrids image_b to image_a's coordinates")
-	parser.add_argument('-n', '--no-plot', dest='plot', action='store_false')
+	parser.add_argument('-r', '--regrid', action='store_true', 
+		help="regrids image_b to image_a's coordinates")
+	parser.add_argument('-w', '--width', type=int, metavar='binwidth', default=500,
+		help='The binwidth for binning the PSDs')
+	parser.add_argument('-s', '--save', metavar='filename', default=None,
+		help='Save the final image at the given filename.')
+	parser.add_argument('--no-plot', dest='plot', action='store_false', 
+		help='Does not plot the final output. Useful if no X11 display')
 	args = parser.parse_args()
-	compare(args.image_a, args.image_b, args.regrid, args.plot)
+
+	compare(args.image_a, args.image_b, args.regrid, args.width, args.plot, args.save)
