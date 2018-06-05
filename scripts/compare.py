@@ -271,7 +271,7 @@ def fit_psd(image, kernel='gaussian'):
 			input the lambda values.
 	'''
 
-	if kernel.lower() in ['gaussian', 'gauss', 'normal']:
+	if kernel.lower() in ['gaussian', 'gauss', 'normal', 'norm']:
 		kern = lambda A, s, l: A * np.exp( -0.5 * (l / s)**2)
 	elif kernel.lower() in ['exponential', 'expon', 'exp']:
 		kern = lambda A, s, l: A * np.exp( -l / s)

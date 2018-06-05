@@ -76,8 +76,38 @@ class TestBinPSD(unittest.TestCase):
 	def test_bin_lengths(self):
 		l1 = len(self.im1['bin_psd']['uv'])
 		l2 = len(self.im2['bin_psd']['uv'])
-		print l1, l2
 		self.assertTrue(l1 < l2)
+
+class TestFitPSD(unittest.TestCase):
+	
+	def setUp(self):
+		im = compare.get_data(data_path)
+		self.im = compare.get_psd(im)
+		self.fit_im = compare.fit_psd(im)
+
+	def test_fit_psd_exists(self):
+		expected = ['best_fit', 'fit_params']
+		self.assertTrue(all([k in list(self.fit_im) for k in expected]))
+
+	def test_fit_psd_params(self):
+		self.assertEqual(len(self.fit_im['fit_params']), 4)
+
+	def test_fit_psd_fit(self):
+		uv = np.linspace(0, 30000)
+		y = self.fit_im['best_fit'](uv)
+		
+		self.assertEqual(uv.shape, y.shape)
+
+	def test_fit_psd_kernels(self):
+		fit = compare.fit_psd(self.im, kernel='norm')
+		fit2 = compare.fit_psd(self.im, kernel='exp')
+		uv = np.linspace(0, 30000)
+		self.assertEqual(np.mean(fit['best_fit'](uv) - fit2['best_fit'](uv)), 0)
+
+	def test_fit_psd_kernel_error(self):
+		with self.assertRaises(ValueError):
+			fit3 = compare.fit_psd(self.im, kernel='asd;fajsl;fa')
+
 
 
 
