@@ -3,7 +3,7 @@
 
 import numpy as np
 import argparse
-from scipy.optimize import leastsq
+from scipy.optimize import least_squares
 
 # CASA imports
 from casac import casac
@@ -121,7 +121,7 @@ def get_data(image_path):
 	ia.open(image_path)
 	summ = ia.summary(list=False)
 	stats = ia.statistics()
-	image['name'] = ia.name()
+	image['name'] = ia.name().split('/')[-1]
 	ia.close()
 	
 	image['smap'] = {
@@ -211,21 +211,20 @@ def fit_psd(image):
 
 	def model(p, x):
 		W, alpha, A, s = p
-		if W < 0 or alpha <=0 or A < 0 or s <=0:
-			return np.inf
-		sinc = np.array([np.sin(np.pi * alpha * xi) / (np.pi * alpha * xi) if xi != 0 else 1 for xi in x])
+		sinc = np.array([np.sin(np.pi * xi / alpha) / (np.pi * xi / alpha) if xi != 0 else 1 for xi in x])
 		gaus = A / s * np.exp(-0.5 * (x / s)**2)
 		
-		return W + sinc * gaus
+		return W + sinc**2 * gaus
 	def errfunc(p, x, y):
 		return model(p, x) - y
-	p0 = [0, 100, 1e6, 1e4]
-	p1, success = leastsq(errfunc, p0, args=(image['psd']['uv'], image['psd']['pow']))
+	p0 = [0, 1e4, max(image['psd']['pow']), 3e4]
+	bounds = (0, np.inf)
+	res = least_squares(errfunc, p0, args=(image['psd']['uv'], image['psd']['pow']), bounds=bounds, loss='cauchy')
 
-	log.post(repr(p1))	
+	log.post(repr(res.x))
 	
-	image['fit_params'] = p1
-	image['best_fit'] = lambda x: model(p1, x)
+	image['fit_params'] = res.x
+	image['best_fit'] = lambda x: model(res.x, x)
 			
 	return image
 
@@ -261,14 +260,14 @@ def get_ratio(image_a, image_b, bin_width=100):
 		
 	'''
 	
-	uv = np.arange(0, min((max(image_a['mask_psd']['uv']), max(image_a['mask_psd']['uv']))), bin_width)
-	int_pow_a = np.interp(uv, image_a['mask_psd']['uv'], image_a['mask_psd']['pow'])
-	int_pow_b = np.interp(uv, image_b['mask_psd']['uv'], image_b['mask_psd']['pow'])
+	uv = np.arange(0, min((max(image_a['psd']['uv']), max(image_a['psd']['uv']))), bin_width)
+	pow_a = image_a['best_fit'](uv)
+	pow_b = image_b['best_fit'](uv)
 
-	ratio = int_pow_b / int_pow_a
-	err = 1 / (np.mean((int_pow_b, int_pow_a), axis=0))
+	ratio = pow_b / pow_a
+	err = 1 / (np.mean((pow_b, pow_a), axis=0))
 	
-	return {'uv':uv, 'pow_a': int_pow_a, 'pow_b': int_pow_b, 'ratio':ratio, 'err':err}
+	return {'uv':uv, 'pow_a': pow_a, 'pow_b': pow_b, 'ratio':ratio, 'err':err}
 
 
 def comparison_plot(image_a, image_b, ratio, save=None):
@@ -313,44 +312,30 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 	}
 
 	# Plots
-	grid = plt.GridSpec(2, 3, width_ratios=[1, 1, 2])
+	grid = plt.GridSpec(1, 3, width_ratios=[1, 1, 1])
 	fig = plt.figure(figsize=(18,9))
 	ax1 = plt.subplot(grid[0,0])
-	plt.semilogy(image_a['psd']['uv']/1000, image_a['psd']['pow'], c='0.7', **line_props)
-	plt.semilogy(image_a['mask_psd']['uv']/1000, image_a['mask_psd']['pow'], c='b', **line_props)
-	plt.ylabel(image_a['name'])
-	plt.title('PSD')
-	plt.gca().get_xaxis().set_visible(False)
+	plt.semilogy(image_a['psd']['uv']/1000, image_a['psd']['pow'], c='.5', **line_props)
+	plt.semilogy(ratio['uv']/1000, ratio['pow_a'], c='b')
+	plt.ylabel('Power')
+	plt.title(image_a['name'])
 
-	ax2 = plt.subplot(grid[1,0], sharex=ax1)
-	plt.semilogy(image_b['psd']['uv']/1000, image_b['psd']['pow'], c='0.7', **line_props)
-	plt.semilogy(image_b['mask_psd']['uv']/1000, image_b['mask_psd']['pow'], c='g', **line_props)
-	plt.ylabel(image_a['name'])
+	ax2 = plt.subplot(grid[0,1], sharex=ax1, sharey=ax1)
+	plt.semilogy(image_b['psd']['uv']/1000, image_b['psd']['pow'], c='.5', **line_props)
+	plt.semilogy(ratio['uv']/1000, ratio['pow_b'], c='g')
+	plt.title(image_b['name'])
+	plt.xlabel(r'UV Distance ($k\lambda$)')
+	ax2.get_yaxis().set_visible(False)
 
-	ax3 = plt.subplot(grid[0,1], sharey=ax1)
-	plt.semilogy(ratio['uv']/1000, ratio['pow_a'], 'b.', mew=0)
-	plt.title('Interpolated PSD')
-	plt.gca().get_xaxis().set_visible(False)
-	plt.gca().get_yaxis().set_visible(False)
-	plt.xlim(-0.25, None)
-	
-	plt.subplot(grid[1,1], sharex=ax3, sharey=ax2)
-	plt.semilogy(ratio['uv']/1000, ratio['pow_b'], 'g.', mew=0)
-	plt.gca().get_yaxis().set_visible(False)
-	plt.xlim(-0.25, None)
-
-	ax5 = plt.subplot(grid[:, 2], sharex=ax3)
+	ax3 = plt.subplot(grid[0, 2], sharex=ax1)
 	scale = 0.1 / min(ratio['err'])
-	plt.errorbar(ratio['uv']/1000, ratio['ratio'], yerr=scale * ratio['err'], fmt='o')
+	plt.errorbar(ratio['uv']/1000, ratio['ratio'], yerr=scale * ratio['err'], fmt='ro', ecolor='0.3', barsabove=True)
 	plt.title('Comparison of PSD')
-	ax5.yaxis.tick_right()
+	ax3.yaxis.tick_right()
+	ax3.yaxis.set_label_position('right')
 	plt.xlim(-0.25, None)
 	plt.axhline(1, ls='--', c='k')
-
-	
-	fig.text(0.04, 0.5, 'Power', fontsize=14, va='center', rotation = 'vertical')
-	fig.text(0.5, 0.04, r'UV Distance ($k\lambda$)', ha='center', fontsize=14)
-	fig.text(0.96, 0.5, r'Power ratio', va='center', fontsize=14, rotation='vertical')
+	plt.ylabel('Power Ratio')
 
 	plt.subplots_adjust(wspace=0.0, hspace=0.0)	
 	plt.show()
