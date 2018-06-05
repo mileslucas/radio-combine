@@ -6,7 +6,12 @@ import argparse
 # CASA imports
 from casac import casac
 ia = casac.image()
-from task_simobserve import simobserve
+sim = casac.simulator()
+
+def simulate():
+	'''
+	'''
+	
 
 
 
