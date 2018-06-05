@@ -40,11 +40,11 @@ def compare(path_a, path_b, regrid=False, plot=True):
 	image_a = get_psd(image_a)
 	image_b = get_psd(image_b)
 
-	image_a = mask_psd(image_a)
-	image_b = mask_psd(image_b)
+#	image_a = mask_psd(image_a#
+#	image_b = mask_psd(image_b)
 
-	image_a = fit_psd(image_a)
-	image_b = fit_psd(image_b)
+#	image_a = fit_psd(image_a)
+#	image_b = fit_psd(image_b)
 
 	ratio = get_ratio(image_a, image_b)
 
@@ -205,6 +205,24 @@ def mask_psd(image, nsigma=2, num_samps=1000):
 	}
 	return image
 
+def bin_psd(image, x):
+	'''
+	'''
+	vals = []
+	vals.append(image['psd']['pow'][0])
+	for i in range(1, len(x)):
+		low = x[i-1]
+		high = x[i]
+		mask = (image['psd']['uv'] > low) & (image['psd']['uv'] <= high)
+		mean_pow = np.mean(image['psd']['pow'][mask])
+		vals.append(mean_pow)
+
+	image['bin_psd'] = {
+		'uv':x,
+		'pow':np.array(vals),
+	}
+	return image
+
 def fit_psd(image):
 	'''
 	'''
@@ -212,7 +230,7 @@ def fit_psd(image):
 	def model(p, x):
 		W, alpha, A, s = p
 		sinc = np.array([np.sin(np.pi * xi / alpha) / (np.pi * xi / alpha) if xi != 0 else 1 for xi in x])
-		gaus = A / s * np.exp(-0.5 * (x / s)**2)
+		gaus = A * np.exp(-x / s)
 		
 		return W + sinc**2 * gaus
 	def errfunc(p, x, y):
@@ -230,7 +248,7 @@ def fit_psd(image):
 
 
 
-def get_ratio(image_a, image_b, bin_width=100):
+def get_ratio(image_a, image_b, bin_width=500):
 	'''
 	Interpolates the psd of both images and gets the ratio of those interpolations.
 
@@ -261,8 +279,10 @@ def get_ratio(image_a, image_b, bin_width=100):
 	'''
 	
 	uv = np.arange(0, min((max(image_a['psd']['uv']), max(image_a['psd']['uv']))), bin_width)
-	pow_a = image_a['best_fit'](uv)
-	pow_b = image_b['best_fit'](uv)
+	image_a = bin_psd(image_a, uv)
+	image_b = bin_psd(image_b, uv)
+	pow_a = image_a['bin_psd']['pow']
+	pow_b = image_b['bin_psd']['pow']
 
 	ratio = pow_b / pow_a
 	err = 1 / (np.mean((pow_b, pow_a), axis=0))
@@ -313,7 +333,7 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 
 	# Plots
 	grid = plt.GridSpec(1, 3, width_ratios=[1, 1, 1])
-	fig = plt.figure(figsize=(18,9))
+	fig = plt.figure(figsize=(21,7))
 	ax1 = plt.subplot(grid[0,0])
 	plt.semilogy(image_a['psd']['uv']/1000, image_a['psd']['pow'], c='.5', **line_props)
 	plt.semilogy(ratio['uv']/1000, ratio['pow_a'], c='b')
@@ -329,7 +349,8 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 
 	ax3 = plt.subplot(grid[0, 2], sharex=ax1)
 	scale = 0.1 / min(ratio['err'])
-	plt.errorbar(ratio['uv']/1000, ratio['ratio'], yerr=scale * ratio['err'], fmt='ro', ecolor='0.3', barsabove=True)
+	plt.errorbar(ratio['uv']/1000, ratio['ratio'], yerr=scale * ratio['err'], fmt='ro', ecolor='0.3',)
+	plt.yscale('log')
 	plt.title('Comparison of PSD')
 	ax3.yaxis.tick_right()
 	ax3.yaxis.set_label_position('right')
@@ -337,7 +358,7 @@ def comparison_plot(image_a, image_b, ratio, save=None):
 	plt.axhline(1, ls='--', c='k')
 	plt.ylabel('Power Ratio')
 
-	plt.subplots_adjust(wspace=0.0, hspace=0.0)	
+	plt.subplots_adjust(wspace=0.0, hspace=0.0)
 	plt.show()
 	
 	if save is not None:
