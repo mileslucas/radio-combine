@@ -11,7 +11,7 @@ ia = casac.image()
 tb = casac.table()
 log = casac.logsink()
 
-def compare(path_a, path_b, regrid=False, plot=True):
+def compare(path_a, path_b, regrid=False, binwidth=500,  plot=True):
 	'''
 	Compare the given images
 
@@ -23,6 +23,8 @@ def compare(path_a, path_b, regrid=False, plot=True):
 		The path to the second image
 	regrid: bool (optional)
 		If true, regrids the second image to the first image's coordinate system. Default=False
+	binwidth: int (optional)
+		The width of the bins for averaging the psds when creating the ratio. Default=500
 	plot: bool (optional)
 		If true, creates plots of the power spectra. Default=True
 
@@ -40,13 +42,7 @@ def compare(path_a, path_b, regrid=False, plot=True):
 	image_a = get_psd(image_a)
 	image_b = get_psd(image_b)
 
-#	image_a = mask_psd(image_a#
-#	image_b = mask_psd(image_b)
-
-#	image_a = fit_psd(image_a)
-#	image_b = fit_psd(image_b)
-
-	ratio = get_ratio(image_a, image_b)
+	ratio = get_ratio(image_a, image_b, binwidth)
 
 	if plot:
 		comparison_plot(image_a, image_b, ratio)
@@ -207,6 +203,21 @@ def mask_psd(image, nsigma=2, num_samps=1000):
 
 def bin_psd(image, x):
 	'''
+	This method will average-bin the psd. It will maintain the 0 uv point and
+	average the next (x[i], x[i+1]] range.
+
+	Params
+	------
+	image: dict
+		The image to average. It must have a 'psd' dictionary inside it
+	x: array-like
+		The uv array that marks the edges of the bins.
+
+	Returns
+	-------
+	image: dict
+		The same image as input but with a new 'bin_psd' dictionary containing
+		'uv' and 'pow' arrays
 	'''
 	vals = []
 	vals.append(image['psd']['pow'][0])
@@ -218,31 +229,72 @@ def bin_psd(image, x):
 		vals.append(mean_pow)
 
 	image['bin_psd'] = {
-		'uv':x,
+		'uv':np.array(x),
 		'pow':np.array(vals),
 	}
 	return image
 
-def fit_psd(image):
+def fit_psd(image, kernel='gaussian'):
 	'''
+	This will attempt to least squares fit the psd with one of the following models.
+
+	$$ f(\lambda) = W + R(\lambda) * K(\lambda) $$
+	where $R$ is the response function
+	$$ R(\lambda) = \frac{\sin{\pi \lambda / \alpha}}{\pi \lambda / \alpha} $$
+	and $K$ is the kernel. If the kernel is exponential 
+	$$ K = A * e ^ {-\lambda / s} $$
+	If the kernel is Gaussian
+	$$ K = A * e ^ {-0.5 (\lambda / s)^2 } $$
+
+	So there are four free parameters: $W$, $\alpha$, $A$, $s$. The fitting is accomplished
+	by least-squares fitting with a Cauchy loss function. Each of the parameters is bounded
+	from $(0, \infty)$. 
+
+	Params
+	------
+	image: dict
+		The image dictionary. Must have a 'psd' dicitonary with 'uv' and 'pow' arrays
+	kernel: str {'gaussian', 'exponential'}
+		The kernel to fit with the model.
+	
+	Returns
+	-------
+	image: dict
+		The image inputted with two new values:
+		'fit_params': array
+			The array of best fit parameters
+		'best_fit': func
+			The model function with the best fit parameters. To get a fit, just
+			input the lambda values.
 	'''
 
-	def model(p, x):
+	if kernel.lower() in ['gaussian', 'gauss', 'normal']:
+		kern = lambda A, s, l: A * np.exp( -0.5 * (l / s)**2)
+	elif kernel.lower() in ['exponential', 'expon', 'exp']:
+		kern = lambda A, s, l: A * np.exp( -l / s)
+	else:
+		raise ValueError('Not a recognized kernel')
+
+	def model(p, l):
 		W, alpha, A, s = p
-		sinc = np.array([np.sin(np.pi * xi / alpha) / (np.pi * xi / alpha) if xi != 0 else 1 for xi in x])
-		gaus = A * np.exp(-x / s)
+		sinc = np.array([np.sin(np.pi * li / alpha) / (np.pi * li / alpha) 
+			if li != 0 else 1 for li in l])
 		
-		return W + sinc**2 * gaus
-	def errfunc(p, x, y):
-		return model(p, x) - y
+		return W + sinc**2 * kern(A, s, l)
+
+	def errfunc(p, l, y):
+		return model(p, l) - y
+
 	p0 = [0, 1e4, max(image['psd']['pow']), 3e4]
 	bounds = (0, np.inf)
-	res = least_squares(errfunc, p0, args=(image['psd']['uv'], image['psd']['pow']), bounds=bounds, loss='cauchy')
+	res = least_squares(errfunc, p0, args=(image['psd']['uv'], 
+		image['psd']['pow']), bounds=bounds, loss='cauchy')
 
-	log.post(repr(res.x))
+	log.post('Fit params for {}'.format(image['name']))
+	log.post('\t W={}, alpha={}, A={}, s={}\n'.format(*res.x))
 	
 	image['fit_params'] = res.x
-	image['best_fit'] = lambda x: model(res.x, x)
+	image['best_fit'] = lambda l: model(res.x, l)
 			
 	return image
 
