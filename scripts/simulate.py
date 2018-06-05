@@ -2,21 +2,22 @@
 # Miles Lucas - mdlucas@nrao.edu
 
 import argparse
+import os
 
 # CASA imports
 from casac import casac
-ia = casac.image()
+me = casac.measures()
 sm = casac.simulator()
 cl = casac.componentlist()
+from tclean import tclean
 from simutil import simutil
-from casa import casa
 
 def simulate(path):
 	'''
 	'''
 #	create_points_cl()
 	setup_simulator(path)
-
+	clean(path)
 
 def create_points_cl():
 	cl.addcomponent(dir='J2000 01h0m0.0 +47.0.0.000', flux=1.0, freq='5GHz', shape='point')
@@ -29,12 +30,12 @@ def create_points_cl():
 def setup_simulator(path, config='d'):
 	'''
 	'''
-	sm.open(path + '.int.im')
+	sm.open(path + '.int.ms')
 	u = simutil()
-	configdir = casa.values()[0]['data'] + "/alma/simmos/" 
+	configdir = os.getenv('CASAPATH').split()[0] + "/data/alma/simmos/"
 	x, y, z, d, padnames, telescope, posobs = u.readantenna(configdir + 
-			'vla.{}.cfs'.format(config))
-
+			'vla.{}.cfg'.format(config))
+	
 	sm.setconfig(telescopename=telescope, x=x, y=y, z=z, dishdiameter=d.tolist(), 
 		mount=['alt-az'], antname=padnames, coordsystem='global', 
 		referencelocation=posobs)
@@ -56,6 +57,13 @@ def setup_simulator(path, config='d'):
 	sm.setdata(spwid=1, fieldid=1)
 	sm.predict(complist='data/points.cl')
 	sm.close() 
+
+def clean(path, **tclean_args):
+	'''
+	'''
+	tclean(vis=path + '.int.ms', imagename=path + '.int.im', imsize=256, 
+		niter=1000, **tclean_args)
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='')
