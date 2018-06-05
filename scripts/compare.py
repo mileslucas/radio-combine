@@ -301,8 +301,6 @@ def fit_psd(image, kernel='gaussian'):
 			
 	return image
 
-
-
 def get_ratio(image_a, image_b, bin_width=500):
 	'''
 	Interpolates the psd of both images and gets the ratio of those interpolations.

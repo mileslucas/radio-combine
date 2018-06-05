@@ -52,7 +52,35 @@ class TestMaskPSD(unittest.TestCase):
 		t1 = self.im['mask_psd']['thresh']
 		im2 = compare.mask_psd(self.im, nsigma=3)
 		self.assertTrue(im2['mask_psd']['thresh'] > t1)
+
+class TestBinPSD(unittest.TestCase):
+
+	def setUp(self):
+		im = compare.get_data(data_path)
+		im2 = compare.get_data(data_path)
+		im = compare.get_psd(im)
+		im2 = compare.get_psd(im2)
+		self.uv1 = np.arange(0, 30000, 1000)
+		self.uv2 = np.arange(0, 30000, 100)
+		self.im1 = compare.bin_psd(im, self.uv1)
+		self.im2 = compare.bin_psd(im2, self.uv2)
+
+	def test_bin_psd_exists(self):
+		expected = 'bin_psd'
+		self.assertIn(expected, list(self.im1))
+
+	def test_bin_psd_keys(self):
+		expected = ['uv', 'pow']
+		self.assertTrue(all([k in list(self.im1['bin_psd']) for k in expected]))
 	
+	def test_bin_lengths(self):
+		l1 = len(self.im1['bin_psd']['uv'])
+		l2 = len(self.im2['bin_psd']['uv'])
+		print l1, l2
+		self.assertTrue(l1 < l2)
+
+
+
 class TestGetRatio(unittest.TestCase):
 
 	def setUp(self):
